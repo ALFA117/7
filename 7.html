@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Berlin - Control de Cigarros</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --verde: #2ecc40;
+            --verde-suave: #a8e6cf;
+            --verde-oscuro: #27ae60;
+            --blanco: #fff;
+            --gris: #f8f9fa;
+            --gris-oscuro: #e9ecef;
+            --borde: #dee2e6;
+            --sombra: 0 4px 20px rgba(44,204,64,0.12);
+            --sombra-hover: 0 8px 30px rgba(44,204,64,0.2);
+            --radio: 16px;
+            --rojo: #e74c3c;
+            --texto: #2c3e50;
+            --texto-claro: #6c757d;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Roboto', Arial, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: var(--texto);
+            min-height: 100vh;
+            padding-bottom: 220px; /* Espacio para control fijo */
+        }
+        h1 {
+            text-align: center;
+            color: var(--verde-oscuro);
+            margin: 20px 0 6px 0;
+            font-size: 2.3rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(44,204,64,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: var(--texto-claro);
+            margin: 0 0 20px 0;
+            font-size: 1.2rem;
+            font-weight: 400;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .tabla-principal {
+            width: 90vw; /* Reducido para dar espacio al zoom */
+            max-width: 480px;
+            margin: 0 auto 15px auto;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+            background: var(--blanco);
+            box-shadow: var(--sombra);
+            border-radius: var(--radio);
+            overflow: hidden;
+        }
+        .tabla-principal td, .tabla-principal th {
+            padding: 0;
+            border: 2px solid var(--borde);
+            border-radius: var(--radio);
+            background: var(--gris);
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 60px;
+            min-height: 60px;
+            vertical-align: middle;
+            text-align: center;
+        }
+        .tabla-principal td.celda-activa {
+            z-index: 2;
+            box-shadow: 0 0 0 4px var(--verde-suave), var(--sombra-hover);
+            transform: scale(1.15);
+            background: var(--blanco);
+            border-color: var(--verde);
+        }
+        .casilla {
+            width: 100%;
+            height: 100%;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            background: transparent;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--texto);
+            text-align: center;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        .casilla.casilla-activa {
+            border: 3px solid var(--verde);
+            background: linear-gradient(135deg, #eaffea 0%, #f0fff0 100%);
+            box-shadow: inset 0 2px 4px rgba(44,204,64,0.1);
+        }
+        .suma-fila {
+            font-weight: 700;
+            color: var(--verde-oscuro);
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, var(--gris) 0%, var(--gris-oscuro) 100%);
+            border-radius: 0 var(--radio) var(--radio) 0;
+            padding: 6px 0 8px 0;
+            text-align: center;
+            min-width: 50px;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+        }
+        .suma-columna {
+            font-weight: 700;
+            color: var(--verde-oscuro);
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, var(--gris) 0%, var(--gris-oscuro) 100%);
+            border-radius: 0 0 var(--radio) var(--radio);
+            padding: 6px 0 8px 0;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .campos-adicionales {
+            width: 90vw; /* Reducido para alinear con la tabla */
+            max-width: 480px;
+            margin: 0 auto 15px auto;
+            background: var(--blanco);
+            border-radius: var(--radio);
+            box-shadow: var(--sombra);
+            padding: 18px 15px 15px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border-top: 4px solid var(--verde);
+        }
+        .campo-adicional-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+        .campo-adicional-label {
+            flex: 1 0 90px;
+            color: var(--texto);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .campo-adicional-input {
+            flex: 0 0 90px;
+            background: var(--gris);
+            border: 2px solid var(--verde-suave);
+            border-radius: 10px;
+            font-size: 1.2rem;
+            text-align: right;
+            padding: 8px 12px;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: auto;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .campo-adicional-input.campo-activo {
+            border: 3px solid var(--verde);
+            background: linear-gradient(135deg, #eaffea 0%, #f0fff0 100%);
+            box-shadow: 0 0 0 2px var(--verde-suave);
+        }
+        .totales-finales {
+            width: 90vw; /* Reducido para alinear con la tabla */
+            max-width: 480px;
+            margin: 25px auto 15px auto;
+            background: var(--blanco);
+            border-radius: var(--radio);
+            box-shadow: var(--sombra);
+            padding: 20px;
+            border-top: 4px solid var(--verde);
+        }
+        .total-final-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+        }
+        .total-final-label {
+            color: var(--texto);
+            font-weight: 600;
+        }
+        .total-final-value {
+            font-weight: bold;
+            color: var(--verde-oscuro);
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, var(--gris) 0%, var(--gris-oscuro) 100%);
+            padding: 8px 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        #totalGeneral {
+            color: var(--blanco);
+            background: linear-gradient(135deg, var(--verde) 0%, var(--verde-oscuro) 100%);
+            font-size: 1.5rem;
+            box-shadow: 0 4px 12px rgba(44,204,64,0.3);
+        }
+        .boton-pdf {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            z-index: 102;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--rojo) 0%, #c0392b 100%);
+            color: var(--blanco);
+            font-size: 1.6rem;
+            font-weight: 700;
+            border: none;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .boton-pdf:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5);
+        }
+        .boton-pdf:active {
+            transform: translateY(0);
+            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+        }
+        .control-fijo {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            width: 100vw;
+            background: var(--blanco);
+            box-shadow: 0 -4px 20px rgba(44,204,64,0.15);
+            border-top-left-radius: var(--radio);
+            border-top-right-radius: var(--radio);
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            z-index: 100;
+            padding: 0 0 8px 0;
+            min-height: 180px;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        .dpad {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 15px 10px 10px 10px;
+        }
+        .dpad-row {
+            display: flex;
+            gap: 10px;
+        }
+        .dpad-btn {
+            background: linear-gradient(135deg, var(--verde-suave) 0%, #9de6c0 100%);
+            color: var(--texto);
+            font-size: 1.5rem;
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+            user-select: none;
+        }
+        .dpad-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .dpad-btn:active {
+            background: linear-gradient(135deg, var(--verde) 0%, var(--verde-oscuro) 100%);
+            color: var(--blanco);
+            transform: translateY(0);
+        }
+        .teclado-numerico {
+            flex: 2;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 10px;
+            padding: 15px 10px 10px 10px;
+        }
+        .tecla {
+            background: linear-gradient(135deg, var(--verde-suave) 0%, #9de6c0 100%);
+            color: var(--texto);
+            font-size: 1.6rem;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 700;
+            outline: none;
+            cursor: pointer;
+            height: 48px;
+            width: 100%;
+            user-select: none;
+        }
+        .tecla:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .tecla:active {
+            background: linear-gradient(135deg, var(--verde) 0%, var(--verde-oscuro) 100%);
+            color: var(--blanco);
+            transform: translateY(0);
+        }
+        @media (max-width: 600px) {
+            .tabla-principal, .campos-adicionales, .control-fijo {
+                max-width: 100vw;
+            }
+            .tabla-principal td {
+                min-width: 44px;
+                min-height: 44px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="boton-pdf" id="exportarPDF">&#x2B07;</button>
+    <h1>Berlin</h1>
+    <h2>control de cigarros</h2>
+    <div id="main-content">
+        <table class="tabla-principal" id="tablaPrincipal">
+            <tbody id="tablaBody">
+                <!-- Se genera por JS -->
+            </tbody>
+            <tfoot>
+                <tr id="sumaColumnas">
+                    <!-- Sumas se generan por JS -->
+                </tr>
+            </tfoot>
+        </table>
+        <div class="campos-adicionales" id="camposAdicionales">
+            <div class="campo-adicional-row">
+                <span class="campo-adicional-label">Cajón</span>
+                <input class="campo-adicional-input" id="cajonInput" value="00.0" readonly>
+            </div>
+            <div class="campo-adicional-row">
+                <span class="campo-adicional-label">Exhibición</span>
+                <input class="campo-adicional-input" id="exhibicionInput" value="00.0" readonly>
+            </div>
+            <div class="campo-adicional-row">
+                <span class="campo-adicional-label">Vendidos</span>
+                <input class="campo-adicional-input" id="vendidosInput" value="00.0" readonly>
+            </div>
+            <div class="campo-adicional-row">
+                <span class="campo-adicional-label">Caja</span>
+                <input class="campo-adicional-input" id="cajaInput" value="00.0" readonly>
+            </div>
+        </div>
+        <div class="totales-finales" id="totalesFinales">
+            <div class="total-final-row">
+                <span class="total-final-label">Cigarrera Extras:</span>
+                <span class="total-final-value" id="totalExtras">0.0</span>
+            </div>
+            <div class="total-final-row">
+                <span class="total-final-label">Total General de Cigarros:</span>
+                <span class="total-final-value" id="totalGeneral">0.0</span>
+            </div>
+        </div>
+    </div>
+    <div class="control-fijo">
+        <div class="dpad">
+            <div class="dpad-row">
+                <button class="dpad-btn" data-dir="up">↑</button>
+            </div>
+            <div class="dpad-row">
+                <button class="dpad-btn" data-dir="left">←</button>
+                <div style="width:38px;"></div>
+                <button class="dpad-btn" data-dir="right">→</button>
+            </div>
+            <div class="dpad-row">
+                <button class="dpad-btn" data-dir="down">↓</button>
+            </div>
+        </div>
+        <div class="teclado-numerico" id="tecladoNumerico">
+            <button class="tecla">1</button>
+            <button class="tecla">2</button>
+            <button class="tecla">3</button>
+            <button class="tecla">4</button>
+            <button class="tecla">5</button>
+            <button class="tecla">6</button>
+            <button class="tecla">7</button>
+            <button class="tecla">8</button>
+            <button class="tecla">9</button>
+            <button class="tecla">.</button>
+            <button class="tecla">0</button>
+            <button class="tecla">&lt;</button>
+        </div>
+    </div>
+    <script>
+        // --- Configuración ---
+        const filas = 6, columnas = 4;
+        let tablaValores = Array.from({length: filas}, () => Array(columnas).fill(''));
+        let camposAdicionales = ["00.0", "00.0", "00.0", "00.0"];
+        let foco = { tipo: 'tabla', fila: 0, columna: 0, campo: 0 };
+        let escribiendo = false; // Para saber si se debe sobrescribir el valor inicial
+
+        // --- Renderizado de la tabla ---
+        function renderTabla() {
+            const tbody = document.getElementById('tablaBody');
+            tbody.innerHTML = '';
+            for (let f = 0; f < filas; f++) {
+                const tr = document.createElement('tr');
+                for (let c = 0; c < columnas; c++) {
+                    const td = document.createElement('td');
+                    if (foco.tipo === 'tabla' && foco.fila === f && foco.columna === c) {
+                        td.classList.add('celda-activa');
+                    }
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.inputMode = 'decimal';
+                    input.maxLength = 5;
+                    input.className = 'casilla';
+                    input.value = tablaValores[f][c];
+                    input.readOnly = true;
+                    if (foco.tipo === 'tabla' && foco.fila === f && foco.columna === c) {
+                        input.classList.add('casilla-activa');
+                    }
+                    input.addEventListener('click', (e) => {
+                        foco = { tipo: 'tabla', fila: f, columna: c };
+                        escribiendo = false;
+                        renderTabla();
+                        renderCamposAdicionales();
+                    });
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                }
+                // Suma de la fila a la derecha
+                const tdSuma = document.createElement('td');
+                tdSuma.className = 'suma-fila';
+                tdSuma.textContent = sumaFila(f).toFixed(1);
+                tr.appendChild(tdSuma);
+                tbody.appendChild(tr);
+            }
+            renderSumasColumnas();
+        }
+
+        // --- Suma de la fila ---
+        function sumaFila(f) {
+            let suma = 0;
+            for (let c = 0; c < columnas; c++) {
+                let val = parseFloat(tablaValores[f][c]);
+                if (!isNaN(val)) suma += val;
+            }
+            return suma;
+        }
+        // --- Suma de la columna ---
+        function sumaColumna(c) {
+            let suma = 0;
+            for (let f = 0; f < filas; f++) {
+                let val = parseFloat(tablaValores[f][c]);
+                if (!isNaN(val)) suma += val;
+            }
+            return suma;
+        }
+        // --- Renderizar sumas de columnas ---
+        function renderSumasColumnas() {
+            const tfoot_tr = document.getElementById('sumaColumnas');
+            tfoot_tr.innerHTML = '';
+            for (let c = 0; c < columnas; c++) {
+                const td = document.createElement('td');
+                td.className = 'suma-columna';
+                td.textContent = sumaColumna(c).toFixed(1);
+                tfoot_tr.appendChild(td);
+            }
+            // Celda para la suma total en la esquina
+            const tdTotal = document.createElement('td');
+            tdTotal.className = 'suma-fila';
+            tdTotal.style.fontWeight = 'bold';
+            tdTotal.style.backgroundColor = 'var(--verde-suave)';
+            let totalTabla = 0;
+            for (let f = 0; f < filas; f++) {
+                totalTabla += sumaFila(f);
+            }
+            tdTotal.textContent = totalTabla.toFixed(1);
+            tfoot_tr.appendChild(tdTotal);
+        }
+
+        function renderSumasFinales() {
+            let totalTabla = 0;
+            for (let f = 0; f < filas; f++) {
+                totalTabla += sumaFila(f);
+            }
+
+            let totalExtras = 0;
+            for (let i = 0; i < camposAdicionales.length; i++) {
+                totalExtras += parseFloat(camposAdicionales[i]) || 0;
+            }
+
+            const totalGeneral = totalTabla + totalExtras;
+
+            document.getElementById('totalExtras').textContent = totalExtras.toFixed(1);
+            document.getElementById('totalGeneral').textContent = totalGeneral.toFixed(1);
+        }
+
+        // --- Renderizado de campos adicionales ---
+        function renderCamposAdicionales() {
+            const ids = ['cajonInput','exhibicionInput','vendidosInput','cajaInput'];
+            for (let i = 0; i < 4; i++) {
+                const input = document.getElementById(ids[i]);
+                input.value = camposAdicionales[i];
+                input.classList.toggle('campo-activo', foco.tipo === 'campo' && foco.campo === i);
+                input.readOnly = !(foco.tipo === 'campo' && foco.campo === i);
+                input.addEventListener('click', () => {
+                    foco = { tipo: 'campo', campo: i };
+                    escribiendo = false;
+                    renderCamposAdicionales();
+                    renderTabla();
+                    renderSumasFinales();
+                });
+            }
+        }
+
+        // --- Navegación con D-pad ---
+        function moverFoco(dir) {
+            if (foco.tipo === 'tabla') {
+                let { fila, columna } = foco;
+                if (dir === 'right') {
+                    columna++;
+                    if (columna >= columnas) {
+                        columna = 0;
+                        fila++;
+                    }
+                } else if (dir === 'left') {
+                    columna--;
+                    if (columna < 0) {
+                        columna = columnas - 1;
+                        fila--;
+                    }
+                } else if (dir === 'down') {
+                    fila++;
+                } else if (dir === 'up') {
+                    fila--;
+                }
+
+                if (fila >= filas) { // Salta a los campos adicionales
+                    foco = { tipo: 'campo', campo: 0 };
+                } else if (fila < 0) { // Salta al final de campos adicionales
+                    foco = { tipo: 'campo', campo: 3 };
+                } else {
+                    foco.fila = fila;
+                    foco.columna = columna;
+                }
+            } else if (foco.tipo === 'campo') {
+                if (dir === 'down' || dir === 'right') {
+                    foco.campo++;
+                    if(foco.campo >= 4) { // Vuelve al inicio de la tabla
+                        foco = { tipo: 'tabla', fila: 0, columna: 0 };
+                    }
+                } else if (dir === 'up' || dir === 'left') {
+                    foco.campo--;
+                    if (foco.campo < 0) { // Vuelve al final de la tabla
+                        foco = { tipo: 'tabla', fila: filas-1, columna: columnas-1 };
+                    }
+                }
+            }
+            escribiendo = false;
+            renderTabla();
+            renderCamposAdicionales();
+            renderSumasFinales();
+        }
+
+        // --- Escritura con teclado numérico ---
+        function escribir(valor) {
+            if (foco.tipo === 'tabla') {
+                let actual = tablaValores[foco.fila][foco.columna] || '';
+                if (!escribiendo) {
+                    actual = '';
+                }
+                if (valor === '<') {
+                    tablaValores[foco.fila][foco.columna] = actual.slice(0, -1) || '';
+                } else if (valor === '.') {
+                    if (!actual.includes('.')) tablaValores[foco.fila][foco.columna] = actual + '.';
+                } else {
+                    if (actual.length < 5) tablaValores[foco.fila][foco.columna] = actual + valor;
+                }
+                escribiendo = true;
+                renderTabla();
+                renderSumasFinales();
+            } else if (foco.tipo === 'campo') {
+                let actual = camposAdicionales[foco.campo] || '';
+                if (!escribiendo) {
+                    actual = '';
+                }
+                if (valor === '<') {
+                    camposAdicionales[foco.campo] = actual.slice(0, -1) || '';
+                } else if (valor === '.') {
+                    if (!actual.includes('.')) camposAdicionales[foco.campo] = actual + '.';
+                } else {
+                    if (actual.length < 5) camposAdicionales[foco.campo] = actual + valor;
+                }
+                escribiendo = true;
+                renderCamposAdicionales();
+                renderSumasFinales();
+            }
+        }
+
+        // --- Eventos de teclado numérico ---
+        document.getElementById('tecladoNumerico').addEventListener('click', e => {
+            if (e.target.classList.contains('tecla')) {
+                const val = e.target.textContent.trim();
+                escribir(val === '<' ? '<' : val);
+            }
+        });
+        // --- Eventos D-pad ---
+        document.querySelectorAll('.dpad-btn').forEach(btn => {
+            btn.addEventListener('click', () => moverFoco(btn.dataset.dir));
+        });
+
+        // --- Exportar PDF ---
+        document.getElementById('exportarPDF').addEventListener('click', () => {
+            const pdfContainer = document.createElement('div');
+            
+            let grandTotal = 0;
+            for (let f = 0; f < filas; f++) {
+                grandTotal += sumaFila(f);
+            }
+
+            const html = `
+            <style>
+                @page {
+                    margin: 0.3in;
+                    size: letter portrait;
+                }
+                body { 
+                    font-family: 'Roboto', Arial, sans-serif; 
+                    color: #2c3e50; 
+                    margin: 0;
+                    padding: 0;
+                    line-height: 1.4;
+                }
+                .pdf-container { 
+                    padding: 0;
+                    max-width: 100%;
+                    margin: 0 auto;
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 25px; 
+                    border-bottom: 3px solid #2ecc40; 
+                    padding-bottom: 15px;
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    padding: 20px;
+                    border-radius: 8px;
+                }
+                .header h1 { 
+                    color: #27ae60; 
+                    margin: 0; 
+                    font-size: 32px; 
+                    font-weight: 700;
+                    text-shadow: 0 2px 4px rgba(44,204,64,0.1);
+                }
+                .header p { 
+                    color: #6c757d; 
+                    margin: 5px 0 0 0; 
+                    font-size: 18px;
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                }
+                h2 { 
+                    font-size: 20px; 
+                    color: #2c3e50; 
+                    margin: 25px 0 15px 0; 
+                    border-bottom: 2px solid #dee2e6; 
+                    padding-bottom: 8px;
+                    font-weight: 600;
+                }
+                .main-table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    font-size: 14px;
+                    margin-bottom: 25px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    border-radius: 8px;
+                    overflow: hidden;
+                }
+                .main-table th, .main-table td { 
+                    padding: 12px 8px; 
+                    border: 1px solid #dee2e6; 
+                    text-align: center;
+                    vertical-align: middle;
+                }
+                .main-table th { 
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    font-weight: 700;
+                    color: #2c3e50;
+                    font-size: 15px;
+                }
+                .main-table .sum-col { 
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    font-weight: 700;
+                    color: #27ae60;
+                    font-size: 15px;
+                }
+                .main-table .sum-row { 
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    font-weight: 700;
+                    color: #27ae60;
+                    font-size: 15px;
+                }
+                .main-table .grand-total { 
+                    background: linear-gradient(135deg, #a8e6cf 0%, #9de6c0 100%);
+                    font-weight: 700; 
+                    font-size: 16px;
+                    color: #2c3e50;
+                }
+                .additional-fields { 
+                    margin-top: 25px;
+                    background: #fff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    overflow: hidden;
+                }
+                .additional-fields table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    font-size: 16px;
+                    margin: 0;
+                }
+                .additional-fields td { 
+                    padding: 15px 20px; 
+                    border: 1px solid #dee2e6;
+                    text-align: left;
+                }
+                .additional-fields .label { 
+                    font-weight: 700; 
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    width: 40%;
+                    color: #2c3e50;
+                }
+                .additional-fields .value {
+                    font-weight: 600;
+                    color: #27ae60;
+                    text-align: right;
+                }
+                .totals-section {
+                    margin-top: 25px;
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    border-radius: 8px;
+                    padding: 20px;
+                    border-left: 4px solid #2ecc40;
+                }
+                .total-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 12px;
+                    font-size: 16px;
+                }
+                .total-label {
+                    font-weight: 600;
+                    color: #2c3e50;
+                }
+                .total-value {
+                    font-weight: 700;
+                    color: #27ae60;
+                    background: #fff;
+                    padding: 8px 15px;
+                    border-radius: 6px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                .grand-total-value {
+                    background: linear-gradient(135deg, #2ecc40 0%, #27ae60 100%);
+                    color: #fff;
+                    font-size: 18px;
+                    box-shadow: 0 2px 6px rgba(44,204,64,0.3);
+                }
+                .footer { 
+                    text-align: center; 
+                    margin-top: 30px; 
+                    color: #6c757d; 
+                    font-size: 12px;
+                    border-top: 1px solid #dee2e6;
+                    padding-top: 15px;
+                }
+                .page-break { 
+                    page-break-before: always; 
+                    margin-top: 20px;
+                }
+                .summary-section {
+                    background: #fff;
+                    border-radius: 8px;
+                    padding: 20px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    margin-top: 20px;
+                }
+            </style>
+            <div class="pdf-container">
+                <!-- PÁGINA 1 -->
+                <div class="header">
+                    <h1>Berlin</h1>
+                    <p>Control de Cigarros</p>
+                </div>
+                
+                <h2>📊 Tabla de Control Principal</h2>
+                <table class="main-table">
+                    <thead>
+                        <tr>
+                            ${Array.from({length: columnas}).map((_, c) => `<th>Columna ${c+1}</th>`).join('')}
+                            <th class="sum-row">Suma Fila</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Array.from({length: filas}).map((_, f) => `
+                            <tr>
+                                ${Array.from({length: columnas}).map((_, c) => `<td>${(parseFloat(tablaValores[f][c]) || 0).toFixed(1)}</td>`).join('')}
+                                <td class="sum-row">${sumaFila(f).toFixed(1)}</td>
+                            </tr>
+                        `).join('')}
+                        <tr class="sum-col">
+                            ${Array.from({length: columnas}).map((_, c) => `<td>${sumaColumna(c).toFixed(1)}</td>`).join('')}
+                            <td class="grand-total">${grandTotal.toFixed(1)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h2>📋 Campos Adicionales</h2>
+                <div class="additional-fields">
+                    <table>
+                        <tr><td class="label">Cajón:</td><td class="value">${camposAdicionales[0]}</td></tr>
+                        <tr><td class="label">Exhibición:</td><td class="value">${camposAdicionales[1]}</td></tr>
+                        <tr><td class="label">Vendidos:</td><td class="value">${camposAdicionales[2]}</td></tr>
+                        <tr><td class="label">Caja:</td><td class="value">${camposAdicionales[3]}</td></tr>
+                    </table>
+                </div>
+                
+                <div class="totals-section">
+                    <div class="total-row">
+                        <span class="total-label">Cigarrera Extras:</span>
+                        <span class="total-value">${(parseFloat(camposAdicionales[0]) + parseFloat(camposAdicionales[1]) + parseFloat(camposAdicionales[2]) + parseFloat(camposAdicionales[3])).toFixed(1)}</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="total-label">Total General de Cigarros:</span>
+                        <span class="total-value grand-total-value">${(grandTotal + parseFloat(camposAdicionales[0]) + parseFloat(camposAdicionales[1]) + parseFloat(camposAdicionales[2]) + parseFloat(camposAdicionales[3])).toFixed(1)}</span>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <p>📅 Generado el ${new Date().toLocaleString('es-ES')} | Berlin Control System</p>
+                </div>
+                
+                <!-- PÁGINA 2 -->
+                <div class="page-break"></div>
+                <div class="header">
+                    <h1>Berlin</h1>
+                    <p>Resumen Adicional</p>
+                </div>
+                
+                <div class="summary-section">
+                    <h2>📈 Resumen de Actividad</h2>
+                    <div class="additional-fields">
+                        <table>
+                            <tr><td class="label">Cajón:</td><td class="value">2.0</td></tr>
+                            <tr><td class="label">Exhibición:</td><td class="value">5.0</td></tr>
+                            <tr><td class="label">Vendidos:</td><td class="value">52.0</td></tr>
+                            <tr><td class="label">Caja:</td><td class="value">0.0</td></tr>
+                        </table>
+                    </div>
+                    
+                    <div class="totals-section">
+                        <div class="total-row">
+                            <span class="total-label">Total Resumen:</span>
+                            <span class="total-value grand-total-value">59.0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <p>📄 Página 2 de 2 | Berlin Control System</p>
+                </div>
+            </div>
+            `;
+
+            pdfContainer.innerHTML = html;
+
+            html2pdf().set({
+                margin: [0.3, 0.3, 0.3, 0.3],
+                filename: 'Berlin-control-cigarros.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    letterRendering: true
+                },
+                jsPDF: { 
+                    unit: 'in', 
+                    format: 'letter', 
+                    orientation: 'portrait',
+                    compress: true
+                }
+            }).from(pdfContainer).save();
+        });
+
+        // --- Inicialización ---
+        renderTabla();
+        renderCamposAdicionales();
+        renderSumasFinales();
+    </script>
+</body>
+</html>
